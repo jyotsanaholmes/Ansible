@@ -1,0 +1,48 @@
+schemaVersion: 2.2.0
+metadata:
+  name: ansible-demo
+components:
+  - name: tooling-container
+    container:
+      image: quay.io/mloriedo/ansible-creator-ee:latest
+      memoryRequest: 256M
+      memoryLimit: 6Gi
+      cpuRequest: 250m
+      cpuLimit: 2000m
+      args: ['tail', '-f', '/dev/null']
+commands:
+  - id: oc-install
+    exec:
+      commandLine: '/usr/local/bin/ansible-playbook ${PROJECT_SOURCE}/playbooks/install_oc.yml'
+      workingDir: ${PROJECT_SOURCE}
+      group:
+        kind: build
+        isDefault: true
+      component: tooling-container
+  - id: ans-nav-install # Ans Nav commands and events can be removed once ansible navigator is installed by default
+    exec:
+      label: "1-ansible-navigator-install"
+      component: tooling-container
+      commandLine: python3 -m pip install ansible-navigator --user
+  - id: ans-nav-set-path
+    exec:
+      label: "2-ansible-navigator-set-path"
+      component: tooling-container
+      commandLine: echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.profile
+  - id: ans-nav-source-prof
+    exec:
+      label: "3-ansible-navigator-source-profile"
+      component: tooling-container
+      commandLine: source ~/.profile
+  - id: ans-nav-first-run
+    exec:
+      label: "4-ansible-navigator-first-run"
+      component: tooling-container
+      commandLine: ansible-navigator
+events:
+  postStart:
+    - "oc-install"
+    - "ans-nav-install"
+    - "ans-nav-set-path"
+    - "ans-nav-source-prof"
+    - "ans-nav-first-run"
